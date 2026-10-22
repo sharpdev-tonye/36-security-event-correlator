@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEPP Security // SOC Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0f1d',
+                        panel: '#111827',
+                        bordercolor: '#1f2937',
+                        cybercyan: '#06b6d4',
+                        cyberred: '#ef4444',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 55, 0.8); }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
+
+    <header class="border-b border-bordercolor bg-panel/50 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-3 w-3 rounded-full bg-cyberred animate-ping"></div>
+                <span class="mono font-bold text-lg tracking-wider text-white">STEPP Security <span class="text-cyberred text-xs px-2 py-0.5 rounded bg-cyberred/10 border border-cyberred/30">SOC Dashboard</span></span>
+            </div>
+            
+            <nav class="flex space-x-3">
+                <a href="index.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Login Portal</a>
+                <a href="dashboard.html" class="px-4 py-2 text-sm font-medium rounded-lg bg-cybercyan/20 text-cybercyan border border-cybercyan/30">SOC Dashboard</a>
+                <a href="logs.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Log Explorer</a>
+            </nav>
+
+            <button onclick="clearData()" class="px-3 py-1.5 bg-slate-800 border border-bordercolor text-xs rounded-lg text-slate-300 hover:bg-slate-700 transition">Reset Demo Data</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-6">
+        <!-- Metrics Row -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass p-6 rounded-2xl">
+                <div class="text-xs mono text-slate-400 uppercase">Total Auth Events</div>
+                <div id="metric-total-events" class="text-3xl font-bold mt-2 text-white mono">0</div>
+            </div>
+            <div class="glass p-6 rounded-2xl">
+                <div class="text-xs mono text-slate-400 uppercase">Failed Attempts</div>
+                <div id="metric-failed-attempts" class="text-3xl font-bold mt-2 text-amber-400 mono">0</div>
+            </div>
+            <div class="glass p-6 rounded-2xl border-cyberred/40 bg-red-950/10">
+                <div class="text-xs mono text-red-400 uppercase">Active Security Alerts</div>
+                <div id="metric-active-alerts" class="text-3xl font-bold mt-2 text-red-500 mono">0</div>
+            </div>
+        </div>
+
+        <!-- Active Threat Alarms -->
+        <div class="glass p-6 rounded-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold flex items-center text-white">
+                    <span class="h-2.5 w-2.5 rounded-full bg-cyberred mr-2 animate-pulse"></span> Active Threat Alarms
+                </h3>
+                <button onclick="fetchDashboardData()" class="px-3 py-1 bg-slate-800 border border-bordercolor text-xs rounded-lg hover:bg-slate-700 transition">Refresh</button>
+            </div>
+            <div id="alerts-container" class="space-y-3">
+                <div class="text-sm text-slate-500 italic p-6 bg-darkbg/40 rounded-xl border border-bordercolor text-center">No active security threats detected. System secure.</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        async function fetchDashboardData() {
+            try {
+                const logsRes = await fetch(`${API_URL}/api/logs`);
+                const logsData = await logsRes.json();
+                
+                const alertsRes = await fetch(`${API_URL}/api/alerts`);
+                const alertsData = await alertsRes.json();
+
+                document.getElementById('metric-total-events').innerText = logsData.total;
+                const failedCount = logsData.logs.filter(l => l.status === 'FAILURE').length;
+                document.getElementById('metric-failed-attempts').innerText = failedCount;
+                document.getElementById('metric-active-alerts').innerText = alertsData.total;
+
+                const alertsContainer = document.getElementById('alerts-container');
+                if (alertsData.alerts.length === 0) {
+                    alertsContainer.innerHTML = `<div class="text-sm text-slate-500 italic p-6 bg-darkbg/40 rounded-xl border border-bordercolor text-center">No active security threats detected. System secure.</div>`;
+                } else {
+                    alertsContainer.innerHTML = alertsData.alerts.map(a => `
+                        <div class="p-4 rounded-xl bg-red-950/25 border border-red-500/40 flex justify-between items-center">
+                            <div>
+                                <span class="text-xs mono px-2 py-0.5 bg-red-500 text-darkbg font-bold rounded">${a.severity}</span>
+                                <h4 class="font-bold text-white mt-1.5">${a.title}</h4>
+                                <p class="text-xs text-slate-400 mt-0.5">${a.description}</p>
+                            </div>
+                            <div class="text-right text-xs mono text-slate-400">
+                                <div>Target: ${a.username}</div>
+                                <div class="text-slate-500 mt-1">${new Date(a.timestamp).toLocaleTimeString()}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error("Failed to fetch dashboard data");
+            }
+        }
+
+        async function clearData() {
+            await fetch(`${API_URL}/api/clear`, { method: 'POST' });
+            fetchDashboardData();
+        }
+
+        fetchDashboardData();
+        setInterval(fetchDashboardData, 3000); // Auto-refresh every 3 seconds
+    </script>
+</body>
+</html>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEPP Security // Log Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0f1d',
+                        panel: '#111827',
+                        bordercolor: '#1f2937',
+                        cybercyan: '#06b6d4',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 55, 0.8); }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
+
+    <header class="border-b border-bordercolor bg-panel/50 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-3 w-3 rounded-full bg-cybercyan"></div>
+                <span class="mono font-bold text-lg tracking-wider text-white">STEPP Security <span class="text-cybercyan text-xs px-2 py-0.5 rounded bg-cybercyan/10 border border-cybercyan/30">Log Explorer</span></span>
+            </div>
+            
+            <nav class="flex space-x-3">
+                <a href="index.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Login Portal</a>
+                <a href="dashboard.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">SOC Dashboard</a>
+                <a href="logs.html" class="px-4 py-2 text-sm font-medium rounded-lg bg-cybercyan/20 text-cybercyan border border-cybercyan/30">Log Explorer</a>
+            </nav>
+
+            <button onclick="fetchLogs()" class="px-3 py-1.5 bg-slate-800 border border-bordercolor text-xs rounded-lg text-slate-300 hover:bg-slate-700 transition">Refresh Feed</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8 flex-1 w-full space-y-6">
+        <div class="glass p-6 rounded-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Authentication Audit Trail</h3>
+                    <p class="text-xs text-slate-400 mt-1">Real-time inspection of all successful and failed sign-in attempts.</p>
+                </div>
+                <div id="log-count" class="text-xs mono text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1 rounded-lg">Total Logs: 0</div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-darkbg/60 text-xs mono text-slate-400 uppercase border-b border-bordercolor">
+                        <tr>
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Timestamp</th>
+                            <th class="p-3">Username</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">IP Address</th>
+                            <th class="p-3">Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body" class="divide-y divide-bordercolor/50 mono text-xs">
+                        <tr><td colspan="6" class="p-4 text-center text-slate-500">Loading audit records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch(`${API_URL}/api/logs`);
+                const data = await res.json();
+                
+                document.getElementById('log-count').innerText = `Total Logs: ${data.total}`;
+                const tbody = document.getElementById('logs-table-body');
+
+                if (data.logs.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No authentication logs recorded yet.</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.logs.map(l => `
+                        <tr class="hover:bg-slate-800/40 transition">
+                            <td class="p-3 text-slate-500">#${l.id}</td>
+                            <td class="p-3 text-slate-400">${new Date(l.timestamp).toLocaleTimeString()}</td>
+                            <td class="p-3 font-semibold text-white">${l.username}</td>
+                            <td class="p-3">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/10 text-red-400 border border-red-500/30'}">
+                                    ${l.status}
+                                </span>
+                            </td>
+                            <td class="p-3 text-slate-400">${l.ip_address}</td>
+                            <td class="p-3 text-slate-400">${l.location}</td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (e) {
+                console.error("Failed to load logs");
+            }
+        }
+
+        fetchLogs();
+        setInterval(fetchLogs, 3000); // Auto-refresh logs every 3 seconds
+    </script>
+</body>
+</html>

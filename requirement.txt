@@ -1,0 +1,3 @@
+pydantic
+python-dateutil
+pip install jinja2

@@ -1,0 +1,9 @@
+[
+  {"timestamp": "2026-10-20T09:15:00", "username": "alice", "status": "failed", "ip": "192.168.1.100"},
+  {"timestamp": "2026-10-20T09:15:30", "username": "alice", "status": "failed", "ip": "192.168.1.100"},
+  {"timestamp": "2026-10-20T09:16:00", "username": "alice", "status": "failed", "ip": "192.168.1.100"},
+  {"timestamp": "2026-10-20T09:16:30", "username": "alice", "status": "failed", "ip": "192.168.1.100"},
+  {"timestamp": "2026-10-20T09:17:00", "username": "alice", "status": "failed", "ip": "192.168.1.100"},
+  {"timestamp": "2026-10-20T09:20:00", "username": "bob", "status": "success", "ip": "10.0.0.5"},
+  {"timestamp": "2026-10-20T09:25:00", "username": "alice", "status": "success", "ip": "192.168.1.100"}
+]
