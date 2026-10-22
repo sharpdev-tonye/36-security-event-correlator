@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STEPP Security</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0f1d',
+                        panel: '#111827',
+                        bordercolor: '#1f2937',
+                        cybercyan: '#06b6d4',
+                    }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(31, 41, 55, 0.8);
+        }
+    </style>
+</head>
+
+<body class="bg-darkbg text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-bordercolor bg-panel/50 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="h-3 w-3 rounded-full bg-cybercyan animate-pulse"></div>
+                <span class="mono font-bold text-lg tracking-wider text-white">STEPP Security <span
+                        class="text-cybercyan text-xs px-2 py-0.5 rounded bg-cybercyan/10 border border-cybercyan/30">Portal</span></span>
+            </div>
+
+            <!-- <nav class="flex space-x-3">
+                <a href="index.html"
+                    class="px-4 py-2 text-sm font-medium rounded-lg bg-cybercyan/20 text-cybercyan border border-cybercyan/30">Login
+                    Portal</a>
+                <!-- <a href="dashboard.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">SOC Dashboard</a>
+                <a href="logs.html" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Log Explorer</a> -->
+            <!-- </nav>  -->
+        
+
+            <div class="text-xs mono text-slate-400" id="api-status">Connecting...</div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl mx-auto px-6 py-12 flex-1 w-full flex items-center justify-center">
+        <div class="glass p-8 rounded-2xl shadow-xl w-full max-w-lg">
+            <h2 class="text-xl font-bold mb-2 text-white">Target Authentication Portal</h2>
+            <!-- <p class="text-sm text-slate-400 mb-6">Valid test accounts:<br>• <code class="text-cybercyan">*****</code> /
+                <code class="text-cybercyan">*****</code><br>• <code class="text-cybercyan">*****</code> / <code
+                    class="text-cybercyan">*****</code></p> -->
+
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">Username</label>
+                    <input type="text" id="username" required
+                        class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition"
+                        placeholder="e.g. alice">
+                </div>
+                <div>
+                    <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">Password</label>
+                    <input type="password" id="password" required
+                        class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition"
+                        placeholder="••••••••">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">IP
+                            Address</label>
+                        <input type="text" id="ip_address" value="*********"
+                            class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition mono">
+                    </div>
+                    <div>
+                        <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">Location</label>
+                        <input type="text" id="location" value="*********"
+                            class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition">
+                    </div>
+                </div>
+                <button type="submit"
+                    class="w-full mt-2 py-3 bg-cybercyan text-darkbg font-bold rounded-xl hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/25">
+                    Submit Authentication Request
+                </button>
+            </form>
+
+            <div id="login-feedback" class="mt-6 p-4 rounded-xl hidden text-sm font-medium"></div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = "";
+
+        async function checkApiHealth() {
+            try {
+                const res = await fetch(`${API_URL}/`);
+                if (res.ok) {
+                    document.getElementById('api-status').innerHTML = '<span class="text-emerald-400">● API Online</span>';
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                document.getElementById('api-status').innerHTML = '<span class="text-red-400">● API Offline</span>';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const ip_address = document.getElementById('ip_address').value;
+            const location = document.getElementById('location').value;
+
+            const feedback = document.getElementById('login-feedback');
+            feedback.classList.remove('hidden');
+            feedback.className = "mt-6 p-4 rounded-xl text-sm font-medium bg-slate-800 text-slate-300";
+            feedback.innerText = "Processing request...";
+
+            try {
+                const res = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, ip_address, location })
+                });
+                const data = await res.json();
+
+                if (data.status === 'SUCCESS') {
+                    feedback.className = "mt-6 p-4 rounded-xl text-sm font-medium bg-emerald-950/40 border border-emerald-500/30 text-emerald-400";
+                    feedback.innerText = `Success: Logged in as '${username}'`;
+                } else {
+                    feedback.className = "mt-6 p-4 rounded-xl text-sm font-medium bg-amber-950/40 border border-amber-500/30 text-amber-400";
+                    feedback.innerText = `Failed: Invalid credentials for user '${username}'`;
+                }
+            } catch (err) {
+                feedback.className = "mt-6 p-4 rounded-xl text-sm font-medium bg-red-950/40 border border-red-500/30 text-red-400";
+                feedback.innerText = "Error: Could not connect to FastAPI backend server.";
+            }
+        }
+
+        checkApiHealth();
+    </script>
+</body>
+
+</html>
