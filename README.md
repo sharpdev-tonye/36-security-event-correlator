@@ -1,72 +1,110 @@
 # Security Event Correlator
 
-## Project Summary
-**Category:** Data, Security & Algorithms  
-**Difficulty:** Intermediate  
-**Suggested team split:** Log parser, detection rules, event correlation, reports 
+A small FastAPI demonstration app that records authentication attempts, detects repeated failures for a username, and displays the resulting events in a browser dashboard. The project is intended for synthetic data and local demonstrations; it is not a production authentication or security monitoring system.
 
-## Description
-This project is a good fit for a small team that wants to build something real and usable in a short amount of time. It focuses on one clear feature, clean data flow, and a simple user experience that can be demoed without extra fluff. The goal is to turn a good idea into a working MVP with a solid backend, a basic interface, and a realistic set of edge cases.
+## What is implemented
 
-## Scope
-Analyze synthetic authentication logs to detect repeated failures and suspicious login sequences.
+- A login portal at `/` and `/index.html`.
+- An API that checks submitted credentials against a small in-memory demo account list and records each attempt as `SUCCESS` or `FAILURE`.
+- Brute-force detection when a username has at least **3 failed attempts within 5 minutes**. An active alert is created once per username.
+- A SOC dashboard at `/dashboard.html` with event, failure, and alert counts.
+- A log explorer at `/logs.html` showing the recorded authentication events.
+- An endpoint to clear in-memory logs and alerts for another demo run.
 
-## Core Features
-- Deliver the main user flow from start to finish.
-- Support the required data model and user interactions.
-- Handle validation, edge cases, and error states cleanly.
-- Include basic monitoring, feedback, or reporting where relevant.
-- Make the app easy to explain during a live demo.
+The API stores data in process memory. Logs and alerts disappear when the server restarts. `sample_logs.json` is example input data, but the current API does not load it. `deector.py` is a separate detector draft and is not used by the FastAPI application.
 
-## Deliverables
-- A working deployed application or API demo
-- A clear README with setup instructions and environment variables
-- A minimal database schema or data model definition
-- UI screens or API endpoints for the core MVP
-- A basic test strategy covering the happy path and one major failure path
-- A short demo script explaining the architecture, choices, and trade-offs
+## Project files
 
-## Suggested Architecture
-- Frontend: simple dashboard, form-based interface, or lightweight visual layer
-- Backend: API or service layer for business logic and validation
-- Data layer: database, in-memory persistence, or structured file storage for MVP use
-- Optional extras: auth, async jobs, scheduling, WebSockets, caching, or notifications depending on the project
+| File | Purpose |
+| --- | --- |
+| `main.py` | FastAPI application, demo credential check, event storage, correlation rule, API and page routes |
+| `index.html` | Authentication attempt form |
+| `dashboard.html` | Metrics and active alert view |
+| `logs.html` | Authentication event table |
+| `sample_logs.json` | Example authentication event data; not loaded by the app |
+| `deector.py` | Standalone detector draft; not connected to the app |
+| `requirements.txt` | Python dependencies |
 
-## Learning Outcomes
-Parsing, time windows, detection logic
+## Requirements
 
-## Recommended MVP Checklist
-1. Define the main user flow and success criteria.
-2. Build the data model and core backend logic.
-3. Connect the UI or client to the main application flow.
-4. Add key validation, security checks, and realistic error states.
-5. Test the happy path and at least one important edge case.
-6. Deploy the app and document the setup clearly.
+- Python 3.10 or newer
+- pip
 
-## Free Deployment Options
-Cloudflare Pages, Vercel, or GitHub Pages for demos; Render or Railway for APIs; Supabase or Postgres for persistence.
+## Run locally
 
-## Good Free Hosting Choices
-- Static frontend: Vercel, Netlify, or GitHub Pages
-- API/backend: Render, Railway, or Fly.io
-- Database/realtime services: Supabase, Neon, Firebase, or Cloudflare D1
-- Documentation/demo pages: GitHub Pages, Cloudflare Pages, or Vercel
+From the project directory, create and activate a virtual environment, then install the dependencies:
 
-## Typical Tech Stack
-- Frontend: React, Next.js, plain HTML/JS, or similar lightweight UI tooling
-- Backend: Node.js, Python (Flask/FastAPI), or Java/Spring Boot
-- Database: Postgres, SQLite, Supabase, or a simple file-based store
-- Real-time layer: WebSockets, polling, or background workers if needed
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
 
-## Final Demo Expectations
-- Provide a working URL with sample or seeded data
-- Show one clear end-to-end flow from start to finish
-- Explain the most important technical decisions and trade-offs
-- Include screenshots, screen recordings, or a brief live walk-through
-- Highlight what was completed in the MVP and what would be next if the project continued
+On Windows PowerShell, activate it with:
 
-## Next Improvements
-- Add authorization, auditing, or stronger validation
-- Improve test coverage and resilience
-- Add analytics, metrics, or observability
-- Expand functionality once the core MVP is stable
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Start the API and web server:
+
+```bash
+uvicorn main:app --reload
+```
+
+Open <http://127.0.0.1:8000/>. The interactive API documentation is available at <http://127.0.0.1:8000/docs>.
+
+## Demo flow
+
+1. Open the login portal and submit an attempt with any username and an incorrect password three times within five minutes.
+2. Open the SOC dashboard to see the recorded events and brute-force alert.
+3. Open the log explorer to inspect the attempts.
+4. Use **Reset Demo Data** on the dashboard, or call the clear endpoint, to start over.
+
+The demo accounts currently defined in `main.py` are `tonye`, `precious`, and `princewill`. Their passwords are hardcoded in source for demonstration only. Do not reuse these credentials or deploy this authentication flow for real users.
+
+## API
+
+### `POST /api/login`
+
+Record an authentication attempt. `username` and `password` are required; `ip_address` and `location` are optional.
+
+```json
+{
+  "username": "alice",
+  "password": "incorrect",
+  "ip_address": "192.168.1.100",
+  "location": "Port Harcourt, NG"
+}
+```
+
+Returns the attempt status, a message, and the recorded log entry. Invalid credentials are recorded as a normal `FAILURE` result rather than an HTTP error.
+
+### `GET /api/logs`
+
+Returns the total number of in-memory authentication events and the events newest first.
+
+### `GET /api/alerts`
+
+Returns the total number of in-memory alerts and the alerts newest first.
+
+### `POST /api/clear`
+
+Clears all in-memory logs and alerts. This is intended for resetting the local demo.
+
+## Configuration and data model
+
+There are no environment variables or external database configured in the current implementation. The failure threshold and time window are constants in `main.py` (`MAX_FAILED_ATTEMPTS` and `TIME_WINDOW_MINUTES`). A log contains an ID, UTC timestamp, username, result status, IP address, and location. An alert contains a title, severity, username, timestamp, description, and status.
+
+## Current limitations and next steps
+
+- This is a local MVP. In-memory state is lost on restart and is not shared between multiple server workers.
+- Demo passwords are stored in plaintext in source code. Replace the demo check with proper password hashing and a real identity store before any real use.
+- CORS currently allows all origins. Restrict it to trusted origins before deployment.
+- `deector.py` is not integrated with the API and needs repair before it can be used; the active detection rule lives in `main.py`.
+- The current repository does not include an automated test suite, deployment configuration, or a deployed demo URL.
+- Consider validating IP addresses and timestamps, persisting events, defining a consistent event schema, and adding tests for normal login, threshold detection, and window boundaries.
+
+## Security note
+
+Use only synthetic accounts and data with this project. It is an educational demonstration and lacks the controls required for production authentication, durable audit logging, and security monitoring.
