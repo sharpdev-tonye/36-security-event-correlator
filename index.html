@@ -86,19 +86,6 @@
                         class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition"
                         placeholder="••••••••">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">IP
-                            Address</label>
-                        <input type="text" id="ip_address" value="*********"
-                            class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition mono">
-                    </div>
-                    <div>
-                        <label class="block text-xs mono text-slate-400 uppercase tracking-wider mb-2">Location</label>
-                        <input type="text" id="location" value="*********"
-                            class="w-full bg-darkbg border border-bordercolor rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cybercyan transition">
-                    </div>
-                </div>
                 <button type="submit"
                     class="w-full mt-2 py-3 bg-cybercyan text-darkbg font-bold rounded-xl hover:bg-cyan-400 transition shadow-lg shadow-cyan-500/25">
                     Submit Authentication Request
@@ -129,9 +116,6 @@
             e.preventDefault();
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            const ip_address = document.getElementById('ip_address').value;
-            const location = document.getElementById('location').value;
-
             const feedback = document.getElementById('login-feedback');
             feedback.classList.remove('hidden');
             feedback.className = "mt-6 p-4 rounded-xl text-sm font-medium bg-slate-800 text-slate-300";
@@ -141,7 +125,7 @@
                 const res = await fetch(`${API_URL}/api/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, ip_address, location })
+                    body: JSON.stringify({ username, password })
                 });
                 const data = await res.json();
 

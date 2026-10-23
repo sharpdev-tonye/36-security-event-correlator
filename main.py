@@ -182,13 +182,16 @@
 
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
 from fastapi.responses import FileResponse
-import os
+import ipaddress
+import json
+from urllib.error import URLError
+from urllib.parse import quote
+from urllib.request import Request as URLRequest, urlopen
 
 app = FastAPI(
     title="AEGIS Security Event Correlator API",
@@ -224,8 +227,6 @@ VALID_USERS = {
 class LoginRequest(BaseModel):
     username: str
     password: str
-    ip_address: Optional[str] = "192.168.1.100"
-    location: Optional[str] = "Port Harcourt, NG"
 
 class LogEntry(BaseModel):
     id: int
@@ -284,10 +285,42 @@ def correlate_events(new_log: dict):
                 alerts_db.append(alert)
 
 
+def locate_ip(ip_address: str) -> str:
+    """Look up an approximate city/region/country for a public IP address."""
+    try:
+        parsed_ip = ipaddress.ip_address(ip_address)
+        if not parsed_ip.is_global:
+            return "Unknown (private or local IP)"
+
+        url = (
+            f"https://ipwho.is/{quote(str(parsed_ip), safe='')}"
+            "?fields=success,city,region,country"
+        )
+        lookup_request = URLRequest(
+            url,
+            headers={"User-Agent": "SecurityEventCorrelator/1.0"},
+        )
+        with urlopen(lookup_request, timeout=2) as response:
+            result = json.loads(response.read().decode("utf-8"))
+
+        if not result.get("success"):
+            return "Unknown"
+
+        location_parts = [
+            result.get("city"),
+            result.get("region"),
+            result.get("country"),
+        ]
+        location_parts = list(dict.fromkeys(part for part in location_parts if part))
+        return ", ".join(location_parts) or "Unknown"
+    except (ValueError, URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return "Unknown"
+
+
 # --- API Endpoints ---
 
 @app.post("/api/login")
-def login(request: LoginRequest):
+def login(request: LoginRequest, http_request: Request):
     """
     Handles authentication requests from the Login Portal.
     Validates credentials, logs the result, and feeds the correlation engine.
@@ -303,13 +336,14 @@ def login(request: LoginRequest):
         message = f"Invalid credentials for user '{request.username}'."
 
     # Record log entry
+    ip_address = http_request.client.host if http_request.client else "Unknown"
     log_entry = {
         "id": len(logs_db) + 1,
         "timestamp": now_iso,
         "username": request.username,
         "status": status,
-        "ip_address": request.ip_address,
-        "location": request.location
+        "ip_address": ip_address,
+        "location": locate_ip(ip_address)
     }
     logs_db.append(log_entry)
 
